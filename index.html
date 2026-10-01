@@ -2,238 +2,463 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Pro Planner v16</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #4f46e5; --bg: #f8fafc; --danger: #ef4444;
-            --today-bg: #eefdf3; --today-border: #22c55e;
-            --selected-border: #4f46e5;
-            --w1: #fff1f2; --w2: #f0f9ff; --w3: #f5f3ff; --w4: #fff7ed; --w5: #fdf2f8;
-            --cat-is: #3b82f6; --cat-akademi: #f59e0b; --cat-kisisel: #10b981;
-        }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); margin: 0; padding-bottom: 90px; overflow-x: hidden; }
-
-        .header { background: white; padding: 15px 20px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { font-size: 18px; margin: 0; font-weight: 800; color: #1e293b; }
-
-        .container { padding: 15px; }
-        .view { display: none; }
-        .view.active { display: block; }
-
-        /* Yıllık & Takvim Stilleri */
-        .year-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
-        .month-card { background: white; border-radius: 18px; padding: 15px; border: 1px solid #e2e8f0; }
-        .month-card h4 { text-align: center; margin: 0 0 12px; color: var(--primary); font-weight: 800; text-transform: uppercase; font-size: 14px; }
-        .mini-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .mini-day { aspect-ratio: 1; font-size: 10px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #f1f5f9; color: #94a3b8; cursor: pointer; }
-        .mini-day.has-data { background: var(--primary) !important; color: white !important; }
-        .mini-day.is-today { background: var(--today-bg); border: 1px solid var(--today-border); color: #166534; }
-
-        .m-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-        .m-head { text-align: center; font-size: 11px; font-weight: 800; color: #94a3b8; padding-bottom: 5px; }
-        .m-day { min-height: 85px; padding: 8px; border-radius: 12px; border: 1px solid #f1f5f9; position: relative; cursor: pointer; }
-        .m-day.selected { border: 3px solid var(--selected-border) !important; }
-        .m-day.today { background: var(--today-bg) !important; border: 2px solid var(--today-border); }
-        .h1 { background: var(--w1); } .h2 { background: var(--w2); } .h3 { background: var(--w3); } .h4 { background: var(--w4); } .h5 { background: var(--w5); }
-
-        /* Plan Kartları */
-        .task-card { 
-            background: white; padding: 15px; border-radius: 15px; display: flex; align-items: center; gap: 12px; 
-            margin-bottom: 10px; border: 1px solid #e2e8f0; border-left: 5px solid transparent; 
-        }
-        .task-card.cat-is { border-left-color: var(--cat-is); }
-        .task-card.cat-akademi { border-left-color: var(--cat-akademi); }
-        .task-card.cat-kisisel { border-left-color: var(--cat-kisisel); }
-        
-        .task-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .task-time-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-        .deadline-tag { font-size: 10px; background: #fee2e2; color: #b91c1c; padding: 3px 6px; border-radius: 6px; font-weight: 700; }
-        .task-text { font-size: 15px; line-height: 1.4; text-transform: capitalize; word-break: break-word; }
-        .task-card.done { opacity: 0.5; background: #f8fafc; border-left-color: #cbd5e1; }
-        
-        /* Düzenleme İkonu */
-        .edit-btn { 
-            padding: 8px; font-size: 18px; color: #94a3b8; cursor: pointer; 
-            border-radius: 50%; transition: 0.2s;
-        }
-        .edit-btn:active { background: #f1f5f9; color: var(--primary); }
-
-        /* UI Elemanları */
-        .fab { position: fixed; bottom: 95px; right: 20px; width: 60px; height: 60px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 10px 25px rgba(79, 70, 229, 0.4); z-index: 300; }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid #e2e8f0; display: flex; height: 75px; z-index: 200; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #94a3b8; cursor: pointer; }
-        .nav-item.active { color: var(--primary); }
-        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: flex-end; z-index: 1000; }
-        .modal-content { background: white; width: 100%; border-radius: 25px 25px 0 0; padding: 25px; padding-bottom: 40px; }
-        select, input { width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 12px; font-size: 16px; outline: none; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3. Sınıf Eğitim Platformu</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-<div class="header">
-    <h1 id="topTitle">Ajanda Pro</h1>
-    <div id="headerDate" style="font-size: 12px; font-weight: 700; color: var(--primary);">2026 Planlayıcı</div>
-</div>
-
-<div class="container">
-    <div id="year" class="view">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-            <button onclick="changeYear(-1)" style="border:0;background:none;font-size:20px;">◀</button>
-            <h2 id="yearLabel" style="margin:0">2026</h2>
-            <button onclick="changeYear(1)" style="border:0;background:none;font-size:20px;">▶</button>
-        </div>
-        <div class="year-grid" id="yearGrid"></div>
-    </div>
-
-    <div id="month" class="view active">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-            <button onclick="changeMonth(-1)" style="border:0;background:none;font-size:20px;">◀</button>
-            <h2 id="monthLabel" style="margin:0;font-size:18px;">Mart 2026</h2>
-            <button onclick="changeMonth(1)" style="border:0;background:none;font-size:20px;">▶</button>
-        </div>
-        <div class="m-grid" id="mGrid"></div>
-    </div>
-
-    <div id="day" class="view">
-        <h2 id="dayLabel" style="font-size:18px;margin-bottom:15px;">Planlar</h2>
-        <div id="dGrid"></div>
-    </div>
-</div>
-
-<div class="fab" id="fabAdd" onclick="openAddM()">+</div>
-
-<nav class="bottom-nav">
-    <div class="nav-item" onclick="tab('year', this)">📅<span>Yıllık</span></div>
-    <div class="nav-item active" onclick="tab('month', this)">🗓️<span>Takvim</span></div>
-    <div class="nav-item" onclick="tab('day', this)">✅<span>Planlar</span></div>
-</nav>
-
-<div id="modal" class="modal" onclick="if(event.target==this) closeM()">
-    <div class="modal-content">
-        <h3 id="mTitle" style="margin-top:0">Yeni Plan</h3>
-        <select id="fCat">
-            <option value="cat-is">İş / AFAD</option>
-            <option value="cat-akademi">Akademik / Ders</option>
-            <option value="cat-kisisel">Kişisel</option>
-        </select>
-        <input type="time" id="fTime" value="09:00">
-        <input type="text" id="fText" placeholder="Detay yazın..." oninput="caps(this)">
-        <div style="display:flex; align-items:center; gap:10px; margin-bottom:15px;">
-            <input type="checkbox" id="fDeadline" style="width:20px;height:20px;">
-            <label for="fDeadline" style="font-weight:600;">Geri Sayım Ekle</label>
-        </div>
-        <div style="display:flex; gap:10px;">
-            <button id="btnDelete" style="flex:0.3; background:var(--danger); color:white; border:none; border-radius:12px; display:none;" onclick="deleteTask()">Sil</button>
-            <button style="flex:1; background:var(--primary); color:white; border:none; border-radius:12px; padding:15px; font-weight:800;" onclick="save()">Kaydet</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    let db = JSON.parse(localStorage.getItem('proPlannerV16')) || {};
-    let viewDate = new Date();
-    let selectedD = new Date().toISOString().split('T')[0];
-    let editIndex = null;
-    let timerInterval = null;
-
-    const catColors = { 'cat-is': '#3b82f6', 'cat-akademi': '#f59e0b', 'cat-kisisel': '#10b981' };
-
-    function tab(t, el) {
-        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.getElementById(t).classList.add('active');
-        el.classList.add('active');
-        document.getElementById('fabAdd').style.display = (t === 'month' || t === 'day') ? 'flex' : 'none';
-        if(t === 'day') startTimers(); else stopTimers();
-        if(t === 'year') renderYear();
-        if(t === 'month') renderMonth();
-        if(t === 'day') renderDay(selectedD);
-    }
-
-    function renderYear() {
-        const yg = document.getElementById('yearGrid'); yg.innerHTML = '';
-        const y = viewDate.getFullYear();
-        document.getElementById('yearLabel').innerText = y;
-        const months = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
-        months.forEach((m, idx) => {
-            const dInM = new Date(y, idx + 1, 0).getDate();
-            const fDay = (new Date(y, idx, 1).getDay() + 6) % 7;
-            let h = `<div class="month-card"><h4 onclick="goToMonth(${idx})">${m}</h4><div class="mini-grid">`;
-            for(let s=0; s<fDay; s++) h += `<div></div>`;
-            for(let d=1; d<=dInM; d++) {
-                const ds = `${y}-${(idx+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
-                h += `<div class="mini-day ${db[ds] && db[ds].length ? 'has-data' : ''} ${ds === new Date().toISOString().split('T')[0] ? 'is-today' : ''}" onclick="viewD('${ds}')">${d}</div>`;
-            }
-            yg.innerHTML += h + `</div></div>`;
-        });
-    }
-
-    function viewD(d) { selectedD = d; viewDate = new Date(d); tab('month', document.querySelectorAll('.nav-item')[1]); }
-
-    function renderMonth() {
-        const mg = document.getElementById('mGrid'); mg.innerHTML = '';
-        const y = viewDate.getFullYear(); const m = viewDate.getMonth();
-        document.getElementById('monthLabel').innerText = new Intl.DateTimeFormat('tr-TR', {month:'long', year:'numeric'}).format(viewDate);
-        ["Pt","Sa","Ça","Pe","Cu","Ct","Pz"].forEach(h => mg.innerHTML += `<div class="m-head">${h}</div>`);
-        const first = (new Date(y, m, 1).getDay()+6)%7;
-        const total = new Date(y, m+1, 0).getDate();
-        for(let s=0; s<first; s++) mg.innerHTML += `<div></div>`;
-        for(let d=1; d<=total; d++) {
-            const dStr = `${y}-${(m+1).toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
-            let wIdx = Math.ceil((d+first)/7); if(wIdx>5) wIdx=5;
-            mg.innerHTML += `<div class="m-day h${wIdx} ${dStr===new Date().toISOString().split('T')[0]?'today':''} ${dStr===selectedD?'selected':''}" onclick="sd('${dStr}')">
-                <span class="m-num">${d}</span>
-                <div style="display:flex;gap:3px;margin-top:5px;flex-wrap:wrap;">${(db[dStr]||[]).map(t=>`<div style="width:6px;height:6px;border-radius:50%;background:${t.done?'#cbd5e1':catColors[t.cat]}"></div>`).join('')}</div>
-            </div>`;
-        }
-    }
-
-    function sd(d) { selectedD = d; renderMonth(); }
-
-    function renderDay(date) {
-        selectedD = date; document.getElementById('dayLabel').innerText = date;
-        const dg = document.getElementById('dGrid'); const tasks = db[date] || [];
-        tasks.sort((a,b)=>a.time.localeCompare(b.time));
-        let h = '';
-        tasks.forEach((t, i) => {
-            let dh = "";
-            if(t.isDeadline && !t.done) {
-                const diff = new Date(date + 'T' + t.time) - new Date();
-                if(diff > 0) {
-                    const s = Math.floor((diff/1000)%60), m = Math.floor((diff/(1000*60))%60), hrs = Math.floor((diff/(1000*60*60))%24), d = Math.floor(diff/(1000*60*60*24));
-                    dh = `<span class="deadline-tag">⏳ ${d>0?d+'g ':''}${hrs}s ${m}dk ${s}sn</span>`;
-                } else dh = `<span class="deadline-tag">SÜRE DOLDU</span>`;
-            }
-            h += `<div class="task-card ${t.cat} ${t.done?'done':''}">
-                <input type="checkbox" style="width:22px;height:22px;" ${t.done?'checked':''} onchange="toggleDone('${date}',${i})">
-                <div class="task-info">
-                    <div class="task-time-row"><span style="font-weight:800;color:var(--primary);font-size:12px;">${t.time}</span>${dh}</div>
-                    <span class="task-text">${t.text}</span>
+    <div class="container">
+        
+        <!-- MAIN MENU -->
+        <div id="screen-main" class="screen">
+            <header>
+                <h1>🎓 3. Sınıf Eğitim Platformu 🎓</h1>
+                <p id="instruction-text">Hangi derse çalışmak istersin?</p>
+            </header>
+            
+            <div class="card-grid">
+                <div class="subject-card" onclick="showScreen('screen-math')">
+                    <div class="card-icon">🧮</div>
+                    <h3>Matematik</h3>
+                    <p class="card-desc">Sayılar dünyasında eğlenceli yolculuk!</p>
                 </div>
-                <div class="edit-btn" onclick="openEditM('${date}',${i})">✎</div>
-            </div>`;
-        });
-        dg.innerHTML = h || '<p style="text-align:center;color:#94a3b8;margin-top:50px;">Plan yok.</p>';
-    }
+                <div class="subject-card" onclick="showScreen('screen-science')">
+                    <div class="card-icon">🔬</div>
+                    <h3>Fen Bilimleri</h3>
+                    <p class="card-desc">Doğayı ve bilimi keşfet!</p>
+                </div>
+                <div class="subject-card" onclick="showScreen('screen-turkish')">
+                    <div class="card-icon">📖</div>
+                    <h3>Türkçe</h3>
+                    <p class="card-desc">Okuma ve Anlama (Yakında)</p>
+                </div>
+                <div class="subject-card" onclick="showScreen('screen-life')">
+                    <div class="card-icon">🌍</div>
+                    <h3>Hayat Bilgisi</h3>
+                    <p class="card-desc">Okulumuz ve Evimiz (Yakında)</p>
+                </div>
+                <div class="subject-card" onclick="showScreen('screen-english')">
+                    <div class="card-icon">🇬🇧</div>
+                    <h3>İngilizce</h3>
+                    <p class="card-desc">Yeni kelimeler öğren, eğlen!</p>
+                </div>
+            </div>
+        </div>
 
-    function openAddM() { editIndex = null; document.getElementById('mTitle').innerText = selectedD + " - Yeni"; document.getElementById('fText').value = ''; document.getElementById('fDeadline').checked = false; document.getElementById('btnDelete').style.display = 'none'; document.getElementById('modal').style.display = 'flex'; }
-    function openEditM(d, i) { selectedD = d; editIndex = i; const t = db[d][i]; document.getElementById('mTitle').innerText = "Düzenle"; document.getElementById('fText').value = t.text; document.getElementById('fTime').value = t.time; document.getElementById('fCat').value = t.cat; document.getElementById('fDeadline').checked = t.isDeadline; document.getElementById('btnDelete').style.display = 'block'; document.getElementById('modal').style.display = 'flex'; }
-    function save() { const txt = document.getElementById('fText').value; if(!txt) return; if(!db[selectedD]) db[selectedD] = []; const data = { time: document.getElementById('fTime').value, text: txt, cat: document.getElementById('fCat').value, isDeadline: document.getElementById('fDeadline').checked, done: editIndex !== null ? db[selectedD][editIndex].done : false }; if(editIndex !== null) db[selectedD][editIndex] = data; else db[selectedD].push(data); localStorage.setItem('proPlannerV16', JSON.stringify(db)); closeM(); tab('day', document.querySelectorAll('.nav-item')[2]); }
-    function startTimers() { stopTimers(); timerInterval = setInterval(() => renderDay(selectedD), 1000); }
-    function stopTimers() { if(timerInterval) clearInterval(timerInterval); }
-    function closeM() { document.getElementById('modal').style.display = 'none'; renderMonth(); }
-    function caps(el) { if(el.value) el.value = el.value[0].toUpperCase() + el.value.slice(1); }
-    function changeYear(n) { viewDate.setFullYear(viewDate.getFullYear()+n); renderYear(); }
-    function changeMonth(n) { viewDate.setMonth(viewDate.getMonth()+n); renderMonth(); }
-    function goToMonth(m) { viewDate.setMonth(m); tab('month', document.querySelectorAll('.nav-item')[1]); }
-    function deleteTask() { db[selectedD].splice(editIndex, 1); localStorage.setItem('proPlannerV16', JSON.stringify(db)); closeM(); renderDay(selectedD); }
-    function toggleDone(d, i) { db[d][i].done = !db[d][i].done; localStorage.setItem('proPlannerV16', JSON.stringify(db)); renderDay(d); }
+        <!-- MATH MENU -->
+        <div id="screen-math" class="screen hidden">
+            <header>
+                <div class="nav-header">
+                    <button class="nav-back" onclick="showScreen('screen-main')">⬅️ Ana Menü</button>
+                </div>
+                <h1>🧮 Matematik Vakti 🧮</h1>
+                <p id="instruction-text">Hangi oyunu oynamak istersin?</p>
+            </header>
+            
+            <div class="card-grid">
+                <!-- Aktif Oyunlar -->
+                <div class="subject-card" onclick="showScreen('screen-rhythmic')">
+                    <div class="card-icon">🎈</div>
+                    <h3>Ritmik Sayma</h3>
+                    <p class="card-desc">Sayılar ve Nicelikler (1)</p>
+                </div>
+                <div class="subject-card" onclick="showScreen('screen-multiplication')">
+                    <div class="card-icon">✖️</div>
+                    <h3>Çarpım Tablosu</h3>
+                    <p class="card-desc">Cebirsel Düşünme</p>
+                </div>
+                <div class="subject-card" onclick="showScreen('screen-division')">
+                    <div class="card-icon">➗</div>
+                    <h3>Bölme İşlemi</h3>
+                    <p class="card-desc">Cebirsel Düşünme</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('subtraction', 'screen-math')">
+                    <div class="card-icon">➖</div>
+                    <h3>Çıkarma İşlemi</h3>
+                    <p class="card-desc">Onluk Bozarak Çıkarma</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('fractions', 'screen-math')">
+                    <div class="card-icon">🍕</div>
+                    <h3>Kesirler</h3>
+                    <p class="card-desc">Bütün, Yarım, Çeyrek</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('time', 'screen-math')">
+                    <div class="card-icon">🕐</div>
+                    <h3>Zamanı Okuma</h3>
+                    <p class="card-desc">Saat, Dakika, Takvim</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('money', 'screen-math')">
+                    <div class="card-icon">🪙</div>
+                    <h3>Paralarımız</h3>
+                    <p class="card-desc">Kuruş ve Lira hesapları</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('geometry', 'screen-math')">
+                    <div class="card-icon">🔺</div>
+                    <h3>Geometri</h3>
+                    <p class="card-desc">Cisimler ve Şekiller</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('symmetry', 'screen-math')">
+                    <div class="card-icon">🦋</div>
+                    <h3>Simetri</h3>
+                    <p class="card-desc">Simetri doğruları</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('data', 'screen-math')">
+                    <div class="card-icon">📊</div>
+                    <h3>Veri Grafikleri</h3>
+                    <p class="card-desc">Çetele ve Sıklık</p>
+                </div>
+            </div>
+        </div>
 
-    renderMonth();
-</script>
+        <!-- SCIENCE MENU -->
+        <div id="screen-science" class="screen hidden">
+            <header>
+                <div class="nav-header">
+                    <button class="nav-back" onclick="showScreen('screen-main')">⬅️ Ana Menü</button>
+                </div>
+                <h1>🔬 Fen Bilimleri 🔬</h1>
+                <p id="instruction-text">Hangi üniteye çalışmak istersin?</p>
+            </header>
+            
+            <div class="card-grid">
+                <div class="subject-card" onclick="startQuiz('science_living', 'screen-science')">
+                    <div class="card-icon">🌱</div>
+                    <h3>Canlılar Dünyası</h3>
+                    <p class="card-desc">Sınıflandırma, Duyular, Döngüler</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('science_matter', 'screen-science')">
+                    <div class="card-icon">🧊</div>
+                    <h3>Maddeyi Tanıyalım</h3>
+                    <p class="card-desc">Katı, Sıvı, Gaz</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('science_force', 'screen-science')">
+                    <div class="card-icon">🏃</div>
+                    <h3>Hareketi Keşfet</h3>
+                    <p class="card-desc">İtme ve Çekme Kuvveti</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('science_earth', 'screen-science')">
+                    <div class="card-icon">🌍</div>
+                    <h3>Gezegenimizi Tanıyalım</h3>
+                    <p class="card-desc">Dünya'nın şekli ve yapısı</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('science_light_sound', 'screen-science')">
+                    <div class="card-icon">💡</div>
+                    <h3>Işık ve Sesler</h3>
+                    <p class="card-desc">Çevremizdeki kaynaklar</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('science_electric', 'screen-science')">
+                    <div class="card-icon">🔌</div>
+                    <h3>Elektrikli Araçlar</h3>
+                    <p class="card-desc">Güvenli elektrik kullanımı</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TURKISH MENU -->
+        <div id="screen-turkish" class="screen hidden">
+            <header>
+                <div class="nav-header"><button class="nav-back" onclick="showScreen('screen-main')">⬅️ Ana Menü</button></div>
+                <h1>📚 Türkçe 📚</h1>
+                <p id="instruction-text">Hangi konuya çalışmak istersin?</p>
+            </header>
+            <div class="card-grid">
+                <div class="subject-card" onclick="startQuiz('turkish_reading', 'screen-turkish')">
+                    <div class="card-icon">📖</div>
+                    <h3>Okuma ve Yazma</h3>
+                    <p class="card-desc">Büyük harfler ve akıcı okuma</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('turkish_speaking', 'screen-turkish')">
+                    <div class="card-icon">🗣️</div>
+                    <h3>Konuşma ve Dinleme</h3>
+                    <p class="card-desc">İletişim kuralları</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('turkish_letters', 'screen-turkish')">
+                    <div class="card-icon">🔤</div>
+                    <h3>Harf Bilgisi</h3>
+                    <p class="card-desc">Alfabe, ünlü ve ünsüz harfler</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('turkish_synonyms', 'screen-turkish')">
+                    <div class="card-icon">🔗</div>
+                    <h3>Eş Anlamlı Kelimeler</h3>
+                    <p class="card-desc">Anlamı aynı, yazılışı farklı!</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('turkish_antonyms', 'screen-turkish')">
+                    <div class="card-icon">📝</div>
+                    <h3>Zıt Anlamlı Kelimeler</h3>
+                    <p class="card-desc">Anlamca birbirinin tersi olanlar.</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('turkish_grammar', 'screen-turkish')">
+                    <div class="card-icon">✏️</div>
+                    <h3>Noktalama İşaretleri</h3>
+                    <p class="card-desc">Nokta, virgül, soru, ünlem.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIFE SCIENCE MENU -->
+        <div id="screen-life" class="screen hidden">
+            <header>
+                <div class="nav-header"><button class="nav-back" onclick="showScreen('screen-main')">⬅️ Ana Menü</button></div>
+                <h1>🌍 Hayat Bilgisi 🌍</h1>
+                <p id="instruction-text">Hangi konuya çalışmak istersin?</p>
+            </header>
+            <div class="card-grid">
+                <div class="subject-card" onclick="startQuiz('life_school', 'screen-life')">
+                    <div class="card-icon">🏫</div>
+                    <h3>Okulumuzda Hayat</h3>
+                    <p class="card-desc">Kurallar ve Kroki çizimi</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('life_home', 'screen-life')">
+                    <div class="card-icon">🏠</div>
+                    <h3>Evimizde Hayat</h3>
+                    <p class="card-desc">Ailemiz ve görev dağılımı</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('life_health_safe', 'screen-life')">
+                    <div class="card-icon">🛡️</div>
+                    <h3>Sağlıklı ve Güvenli Hayat</h3>
+                    <p class="card-desc">Trafik, acil durumlar, sağlık</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ENGLISH MENU -->
+        <div id="screen-english" class="screen hidden">
+            <header>
+                <div class="nav-header">
+                    <button class="nav-back" onclick="showScreen('screen-main')">⬅️ Ana Menü</button>
+                </div>
+                <h1>🇬🇧 İngilizce Vakti 🇬🇧</h1>
+                <p id="instruction-text">Hangi konuya çalışmak istersin?</p>
+            </header>
+            
+            <div class="card-grid">
+                <div class="subject-card" onclick="startQuiz('english_unit1', 'screen-english')">
+                    <div class="card-icon">👋</div>
+                    <h3>Unit 1: Greeting</h3>
+                    <p class="card-desc">Selamlama, Karşılama</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('english_unit2', 'screen-english')">
+                    <div class="card-icon">👨‍👩‍👧</div>
+                    <h3>Unit 2: My Family</h3>
+                    <p class="card-desc">Aile üyeleri</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('english_unit3', 'screen-english')">
+                    <div class="card-icon">💖</div>
+                    <h3>Unit 3: People I Love</h3>
+                    <p class="card-desc">Dış görünüş ve fiziksel özellikler</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('english_unit4', 'screen-english')">
+                    <div class="card-icon">😊</div>
+                    <h3>Unit 4: Feelings</h3>
+                    <p class="card-desc">Hisler, Duygular</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('english_unit5', 'screen-english')">
+                    <div class="card-icon">🧸</div>
+                    <h3>Unit 5: Toys and Games</h3>
+                    <p class="card-desc">Oyuncaklar ve Oyunlar</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('english_unit6', 'screen-english')">
+                    <div class="card-icon">🏠</div>
+                    <h3>Unit 6: My House</h3>
+                    <p class="card-desc">Evin bölümleri</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('english_unit7', 'screen-english')">
+                    <div class="card-icon">🏙️</div>
+                    <h3>Unit 7: In My City</h3>
+                    <p class="card-desc">Şehirdeki yerler</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('english_unit8', 'screen-english')">
+                    <div class="card-icon">🚌</div>
+                    <h3>Unit 8: Transportation</h3>
+                    <p class="card-desc">Ulaşım araçları</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('english_unit9', 'screen-english')">
+                    <div class="card-icon">🌤️</div>
+                    <h3>Unit 9: Weather</h3>
+                    <p class="card-desc">Hava durumu</p>
+                </div>
+                <div class="subject-card" onclick="startQuiz('english_unit10', 'screen-english')">
+                    <div class="card-icon">🌳</div>
+                    <h3>Unit 10: Nature</h3>
+                    <p class="card-desc">Doğa, hayvanlar, deniz</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- RHYTHMIC COUNTING GAME -->
+        <div id="screen-rhythmic" class="screen hidden">
+            <header>
+                <div class="nav-header"><button class="nav-back" onclick="showScreen('screen-math')">⬅️ Matematik Menüsü</button></div>
+                <h1>🎈 Eğlenceli Ritmik Sayma 🎈</h1>
+                <div class="mode-selector">
+                    <button id="mode-learn" class="mode-btn active">📖 Öğrenme Modu</button>
+                    <button id="mode-game" class="mode-btn">🎮 Oyun Modu</button>
+                </div>
+                <div class="game-type-selector hidden" id="game-type-selector">
+                    <button id="gt-countdown" class="gt-btn active">⏳ Geri Sayım</button>
+                    <button id="gt-stopwatch" class="gt-btn">⏱️ Kronometre</button>
+                </div>
+                <div class="direction-selector" id="direction-selector">
+                    <button id="dir-forward" class="dir-btn active">⬆️ İleri (Artarak)</button>
+                    <button id="dir-backward" class="dir-btn">⬇️ Geri (Azalarak)</button>
+                </div>
+                <p id="instruction-text">Hangi sayıyla ritmik saymak istersin?</p>
+            </header>
+            
+            <div class="number-selector">
+                <button class="num-btn" data-step="1">1</button>
+                <button class="num-btn" data-step="2">2</button>
+                <button class="num-btn" data-step="3">3</button>
+                <button class="num-btn" data-step="4">4</button>
+                <button class="num-btn" data-step="5">5</button>
+                <button class="num-btn" data-step="6">6</button>
+                <button class="num-btn" data-step="7">7</button>
+                <button class="num-btn" data-step="8">8</button>
+                <button class="num-btn" data-step="9">9</button>
+                <button class="num-btn special" data-step="10">10</button>
+                <button class="num-btn special" data-step="100">100</button>
+            </div>
+
+            <div class="game-area hidden" id="game-area">
+                <div class="selected-step-info"><span id="step-display">2</span><span id="step-suffix">'şer ileri sayıyoruz! 🚀</span></div>
+                
+                <div class="game-hud hidden" id="game-hud">
+                    <div class="hud-item timer" id="timer-box">⏳ <span id="timer-display">60</span></div>
+                    <div class="hud-item score">⭐ Skor: <span id="score-display">0</span></div>
+                    <div class="hud-item combo hidden" id="combo-box">🔥 <span id="combo-display">2</span>x Seri</div>
+                </div>
+
+                <div id="start-overlay" class="start-overlay hidden">
+                    <button id="start-timer-btn" class="action-btn next" style="font-size: 1.5rem; padding: 20px 40px; width: 100%;">Oyuna Başla! 🏁</button>
+                </div>
+
+                <div id="game-over-screen" class="game-over-screen hidden">
+                    <h2 id="game-over-title">⏰ Süre Bitti!</h2>
+                    <p id="game-over-desc" style="font-size: 1.2rem;">Toplam Skorun: <strong id="final-score" style="font-size: 1.5rem; color: #ff5252;">0</strong></p>
+                    <div id="new-badge-text" style="color: #1dd1a1; font-weight: bold; margin: 10px 0;"></div>
+                    <button id="play-again-btn" class="action-btn next mt-10">Tekrar Oyna 🔄</button>
+                </div>
+
+                <div class="number-display" id="number-display-container">
+                    <div id="current-number" class="pop-animation">0</div>
+                </div>
+
+                <div class="controls" id="learn-controls">
+                    <button id="next-btn" class="action-btn next">Sıradaki! 🌟</button>
+                    <button class="action-btn reset reset-btn">Baştan Başla 🔄</button>
+                </div>
+                
+                <div class="game-options hidden" id="game-options">
+                    <p class="question-text">Sıradaki sayı hangisi?</p>
+                    <div class="options-container" id="options-container"></div>
+                </div>
+                
+                <div class="history-area">
+                    <p>Saydıklarımız:</p>
+                    <div id="history-list"></div>
+                </div>
+            </div>
+            
+            <div class="badges-area" id="badges-area">
+                <h3>🏆 Başarılar & Rozetler 🏆</h3>
+                <div class="badges-container" id="badges-container"></div>
+            </div>
+        </div>
+
+        <!-- MULTIPLICATION GAME -->
+        <div id="screen-multiplication" class="screen hidden">
+            <header>
+                <div class="nav-header"><button class="nav-back" onclick="showScreen('screen-math')">⬅️ Matematik Menüsü</button></div>
+                <h1>✖️ Eğlenceli Çarpım Tablosu ✖️</h1>
+                <div class="mode-selector">
+                    <button id="mult-mode-learn" class="mode-btn active" onclick="setMultMode('learn')">📖 Öğrenme Modu</button>
+                    <button id="mult-mode-game" class="mode-btn" onclick="setMultMode('game')">🎮 Oyun Modu</button>
+                </div>
+                <p id="mult-instruction" class="instruction-text">Hangi sayının tablosuna çalışmak istersin?</p>
+            </header>
+            
+            <div class="number-selector" id="mult-number-selector">
+                <!-- JS will populate -->
+            </div>
+
+            <div class="game-area hidden" id="mult-game-area">
+                <div id="mult-learn-area" class="table-display"></div>
+                <div id="mult-game-ui" class="hidden">
+                    <div class="game-hud">
+                        <div class="hud-item score" style="width: 150px; text-align: center;">⭐ Skor: <span id="mult-score">0</span></div>
+                    </div>
+                    <div class="question-display" id="mult-question">7 x 4 = ?</div>
+                    <div class="options-container" id="mult-options"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DIVISION GAME -->
+        <div id="screen-division" class="screen hidden">
+            <header>
+                <div class="nav-header"><button class="nav-back" onclick="showScreen('screen-math')">⬅️ Matematik Menüsü</button></div>
+                <h1>➗ Eğlenceli Bölme İşlemi ➗</h1>
+                <div class="mode-selector">
+                    <button id="div-mode-learn" class="mode-btn active" onclick="setDivMode('learn')">📖 Öğrenme Modu</button>
+                    <button id="div-mode-game" class="mode-btn" onclick="setDivMode('game')">🎮 Oyun Modu</button>
+                </div>
+                <p id="div-instruction" class="instruction-text">Hangi sayıya bölme yapmak istersin?</p>
+            </header>
+            
+            <div class="number-selector" id="div-number-selector">
+                <!-- JS will populate -->
+            </div>
+
+            <div class="game-area hidden" id="div-game-area">
+                <div id="div-learn-area" class="table-display"></div>
+                
+                <div id="div-game-ui" class="hidden">
+                    <div class="game-hud">
+                        <div class="hud-item score" style="width: 150px; text-align: center;">⭐ Skor: <span id="div-score">0</span></div>
+                    </div>
+                    <div class="question-display" id="div-question">14 ÷ 2 = ?</div>
+                    <div class="options-container" id="div-options"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GENERIC QUIZ MODULE -->
+        <div id="screen-quiz" class="screen hidden">
+            <header>
+                <div class="nav-header"><button class="nav-back" id="quiz-back-btn" onclick="showScreen('screen-math')">⬅️ Menüye Dön</button></div>
+                <h1 id="quiz-title">Quiz</h1>
+                <div class="mode-selector" id="quiz-mode-selector">
+                    <button id="quiz-mode-learn" class="mode-btn active" onclick="setQuizMode('learn')">📖 Konu Özeti</button>
+                    <button id="quiz-mode-game" class="mode-btn" onclick="setQuizMode('game')">🎮 Testi Çöz</button>
+                </div>
+            </header>
+            
+            <div class="game-area" id="quiz-container">
+                <!-- LEARN AREA -->
+                <div id="quiz-learn-area" class="table-display" style="max-width: 700px; font-size: 1.1rem; line-height: 1.6; font-family: 'Nunito', sans-serif; text-align: left; padding: 20px;">
+                    <!-- Summary text will be injected here -->
+                </div>
+                
+                <!-- GAME AREA -->
+                <div id="quiz-game-ui" class="hidden">
+                    <div class="game-hud">
+                        <div class="hud-item score" style="width: 150px; text-align: center;">⭐ Skor: <span id="quiz-score">0</span></div>
+                    </div>
+                    
+                    <div id="quiz-visual" style="margin: 20px auto; min-height: 120px; display: flex; justify-content: center; align-items: center; font-size: 5rem; animation: pop 0.3s;">
+                        <!-- Visual content injected here -->
+                    </div>
+                    
+                    <div class="question-display" id="quiz-question" style="font-size: 2rem; margin: 15px 0;">Soru?</div>
+                    <div class="options-container" id="quiz-options"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="data.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
